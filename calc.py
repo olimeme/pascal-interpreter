@@ -1,8 +1,19 @@
-INTEGER, PLUS, MINUS, EOF = 'INTEGER', 'PLUS', 'MINUS', 'EOF'
+from enum import Enum
+
+INTEGER, PLUS, MINUS, MULT, DIV, EOF = 'INTEGER', 'PLUS', 'MINUS', 'MULT', 'DIV', 'EOF'
+
+class TokenType(Enum):
+    INTEGER = "INTEGER"
+    EOF = "EOF"
+    PLUS = "PLUS"
+    MINUS = "MINUS"
+    MULT = "MULT"
+    DIV = "DIV"
+    
 
 class Token(object):
     def __init__(self, type, value):
-        # token type: INTEGER, PLUS, MINUS, or EOF
+        # token type: TokenType.INTEGER, PLUS, MINUS, MULT, DIV, EOF
         self.type = type
         # token value: non-negative integer value, '+', '-', or None
         self.value = value
@@ -69,19 +80,27 @@ class Interpreter(object):
                 continue
 
             if self.current_char.isdigit():
-                return Token(INTEGER, self.integer())
+                return Token(TokenType.INTEGER, self.integer())
 
             if self.current_char == '+':
                 self.advance()
-                return Token(PLUS, '+')
+                return Token(TokenType.PLUS, '+')
 
             if self.current_char == '-':
                 self.advance()
-                return Token(MINUS, '-')
+                return Token(TokenType.MINUS, '-')
+            
+            if self.current_char == '*':
+                self.advance()
+                return Token(TokenType.MULT, '*')
+            
+            if self.current_char == '/':
+                self.advance()
+                return Token(TokenType.DIV, '/')
 
             self.error()
 
-        return Token(EOF, None)
+        return Token(TokenType.EOF, None)
 
     def eat(self, token_type):
         # compare the current token type with the passed token
@@ -97,38 +116,45 @@ class Interpreter(object):
     def expr(self):
         """Parser / Interpreter
 
-        expr -> INTEGER PLUS INTEGER
-        expr -> INTEGER MINUS INTEGER
+        expr -> TokenType.INTEGER PLUS TokenType.INTEGER
+        expr -> TokenType.INTEGER MINUS TokenType.INTEGER
+        expr -> TokenType.INTEGER MULT TokenType.INTEGER
+        expr -> TokenType.INTEGER DIV TokenType.INTEGER
         """
         # set current token to the first token taken from the input
         self.current_token = self.get_next_token()
 
         # we expect the current token to be an integer
         left = self.current_token
-        self.eat(INTEGER)
+        self.eat(TokenType.INTEGER)
 
         # we expect the current token to be either a '+' or '-'
         op = self.current_token
-        if op.type == PLUS:
-            self.eat(PLUS)
-        else:
-            self.eat(MINUS)
+        match op.type:
+            case TokenType.PLUS:
+                self.eat(TokenType.PLUS)
+            case TokenType.MINUS:
+                self.eat(TokenType.MINUS)
+            case TokenType.MULT:
+                self.eat(TokenType.MULT)
+            case TokenType.DIV:
+                self.eat(TokenType.DIV)
 
         # we expect the current token to be an integer
         right = self.current_token
-        self.eat(INTEGER)
+        self.eat(TokenType.INTEGER)
         # after the above call the self.current_token is set to
         # EOF token
 
-        # at this point either the INTEGER PLUS INTEGER or
-        # the INTEGER MINUS INTEGER sequence of tokens
-        # has been successfully found and the method can just
-        # return the result of adding or subtracting two integers,
-        # thus effectively interpreting client input
-        if op.type == PLUS:
-            result = left.value + right.value
-        else:
-            result = left.value - right.value
+        match op.type:
+            case TokenType.PLUS:
+                result = left.value + right.value
+            case TokenType.MINUS:
+                result = left.value - right.value
+            case TokenType.MULT:
+                result = left.value * right.value
+            case TokenType.DIV:
+                result = left.value / right.value
         return result
 
 
